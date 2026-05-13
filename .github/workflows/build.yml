@@ -3,8 +3,8 @@ name: Build Executables
 on:
   push:
     tags:
-      - 'v*'          # Сборка при создании тега v1.0, v1.2.3 и т.д.
-  workflow_dispatch:   # Можно запускать вручную
+      - 'v1.0.0'
+  workflow_dispatch:
 
 jobs:
   build:
