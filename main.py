@@ -46,6 +46,34 @@ class TicketCalculator:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
+    @staticmethod
+    def set_icon(self):
+        """Кроссплатформенная установка иконки"""
+        try:
+            # Windows
+            if sys.platform.startswith('win'):
+                icon_path = self.resource_path("icon.ico")
+                if os.path.exists(icon_path):
+                    self.root.iconbitmap(icon_path)
+                    return
+
+            # macOS
+            elif sys.platform == 'darwin':
+                icon_path = self.resource_path("icon.icns")
+                if os.path.exists(icon_path):
+                    self.root.iconbitmap(icon_path)
+                    return
+
+            # Универсальный вариант (PNG) — работает везде
+            icon_path = self.resource_path("icon.png")
+            if os.path.exists(icon_path):
+                img = PhotoImage(file=icon_path)
+                self.root.iconphoto(True, img)
+                return
+
+        except Exception as e:
+            print(f"Не удалось установить иконку: {e}")
+
     def set_icon(self):
         """Кроссплатформенная установка иконки"""
         icon_path = self.resource_path("icon.ico")
