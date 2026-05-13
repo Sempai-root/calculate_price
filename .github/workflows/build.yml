@@ -3,30 +3,31 @@ name: Build Executables
 on:
   push:
     tags:
-      - 'v1.0.0'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false        # ← Важно! Чтобы Windows и Linux собирались даже если macOS упал
       matrix:
         include:
           - os: windows-latest
             name: Windows
-            artifact: Windows
+            artifact_name: Windows
             icon: icon.ico
             onefile: true
 
           - os: macos-latest
             name: macOS
-            artifact: macOS
+            artifact_name: macOS
             icon: icon.icns
-            onefile: false   # Лучше делать .app для macOS
+            onefile: false
 
           - os: ubuntu-latest
             name: Linux
-            artifact: Linux
+            artifact_name: Linux
             icon: icon.png
             onefile: true
 
@@ -46,11 +47,15 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
+          echo "Building for ${{ matrix.name }}..."
+
           if [ "${{ matrix.name }}" = "macOS" ]; then
+            # Для macOS лучше собирать как .app (onedir)
             pyinstaller --windowed \
                         --name "Калькулятор_билетов" \
                         --icon "${{ matrix.icon }}" \
                         --add-data "icon.png:." \
+                        --onedir \
                         main.py
           else
             pyinstaller --onefile \
@@ -63,8 +68,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Калькулятор_билетов-${{ matrix.artifact }}
+          name: Калькулятор_билетов-${{ matrix.artifact_name }}
           path: |
-            dist/Калькулятор_билетов*
-            dist/Калькулятор_билетов.app
+            dist/*
           retention-days: 30
