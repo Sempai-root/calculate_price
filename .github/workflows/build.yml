@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false        # ← Важно! Чтобы Windows и Linux собирались даже если macOS упал
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -46,11 +46,11 @@ jobs:
           pip install pyinstaller pillow pyperclip
 
       - name: Build with PyInstaller
+        shell: bash
         run: |
           echo "Building for ${{ matrix.name }}..."
 
           if [ "${{ matrix.name }}" = "macOS" ]; then
-            # Для macOS лучше собирать как .app (onedir)
             pyinstaller --windowed \
                         --name "Калькулятор_билетов" \
                         --icon "${{ matrix.icon }}" \
