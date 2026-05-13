@@ -8,7 +8,6 @@ from tkinter import messagebox
 
 class TicketCalculator:
     def __init__(self):
-
         self.root = Tk()
         self.root.title("Калькулятор стоимости билетов")
         self.root.geometry("480x740")
@@ -21,10 +20,10 @@ class TicketCalculator:
         self.style.theme_use("clam")
         self._configure_styles()
 
-        self.entry_kof = None
-        self.entry_price = None
-        self.entry_guest = None
         self.entry_host = None
+        self.entry_guest = None
+        self.entry_price = None
+        self.entry_kof = None
         self.result_label = None
 
         # Переменные
@@ -39,57 +38,31 @@ class TicketCalculator:
 
     @staticmethod
     def resource_path(relative_path):
-        """Получает правильный путь к файлам при запуске из PyInstaller"""
+        """Получает правильный путь при запуске из .exe"""
         try:
             base_path = sys._MEIPASS
         except Exception:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    @staticmethod
     def set_icon(self):
-        """Кроссплатформенная установка иконки"""
-        try:
-            # Windows
-            if sys.platform.startswith('win'):
-                icon_path = self.resource_path("icon.ico")
-                if os.path.exists(icon_path):
-                    self.root.iconbitmap(icon_path)
-                    return
-
-            # macOS
-            elif sys.platform == 'darwin':
-                icon_path = self.resource_path("icon.icns")
-                if os.path.exists(icon_path):
-                    self.root.iconbitmap(icon_path)
-                    return
-
-            # Универсальный вариант (PNG) — работает везде
-            icon_path = self.resource_path("icon.png")
-            if os.path.exists(icon_path):
-                img = PhotoImage(file=icon_path)
-                self.root.iconphoto(True, img)
-                return
-
-        except Exception as e:
-            print(f"Не удалось установить иконку: {e}")
-
-    def set_icon(self):
-        """Кроссплатформенная установка иконки"""
+        """Установка иконки"""
         icon_path = self.resource_path("icon.ico")
-
         if os.path.exists(icon_path):
             try:
                 self.root.iconbitmap(icon_path)
+                return
             except:
-                # Для macOS и Linux иногда лучше использовать .png
-                try:
-                    icon_img = PhotoImage(file=self.resource_path("icon.png"))
-                    self.root.iconphoto(True, icon_img)
-                except:
-                    pass
-        else:
-            print("Иконка не найдена")
+                pass
+
+        # Запасной вариант
+        icon_path = self.resource_path("icon.png")
+        if os.path.exists(icon_path):
+            try:
+                img = PhotoImage(file=icon_path)
+                self.root.iconphoto(True, img)
+            except:
+                pass
 
     def _configure_styles(self):
         self.style.configure("TFrame", background="#F5F7FA")
@@ -105,31 +78,46 @@ class TicketCalculator:
                              font=("Segoe UI", 14, "bold"), foreground="#1E40AF", padding=25)
         self.style.configure("Tip.TLabel", font=("Segoe UI", 10, "italic"), foreground="#64748B")
 
-    # === Методы validate_input, validate_field, toggle_topmost, calculate_result, calculate, clear_fields ===
-    # (оставлены без изменений, для краткости не дублирую)
+    def _setup_comma_replacement(self, var, entry):
+        """Автоматически заменяет запятую на точку и обновляет подсветку поля."""
+        def replace_comma(*args):
+            val = var.get()
+            if ',' in val:
+                var.set(val.replace(',', '.'))
+                self.validate_field(entry)
+        var.trace_add('write', replace_comma)
 
-    @staticmethod
-    def validate_input(value):
-        if value in ("", "."): return True
-        if value.count('.') > 1: return False
+    def validate_input(self, value):
+        """Валидация ввода (поддерживает запятую как разделитель)."""
+        if value in ("", "."):
+            return True
+        # Разрешаем только один разделитель (точка или запятая)
+        if value.count('.') + value.count(',') > 1:
+            return False
+        # Проверяем, можно ли преобразовать в число после замены запятой на точку
         try:
-            float(value)
+            float(value.replace(',', '.'))
             return True
         except ValueError:
             return False
 
-    @staticmethod
-    def validate_field(entry, reset=False):
+    def validate_field(self, entry, reset=False):
+        """Подсветка поля: красный, если значение <= 0 или невалидное, иначе обычный."""
         if reset:
             entry.configure(style="TEntry")
             return
+        value = entry.get().strip().replace(',', '.')
+        # Пустое поле, одна точка или минус не считаются ошибкой
+        if value in ("", ".", "-"):
+            entry.configure(style="TEntry")
+            return
         try:
-            value = entry.get().strip()
-            if value and float(value) <= 0:
+            num = float(value)
+            if num <= 0:
                 entry.configure(style="Error.TEntry")
             else:
                 entry.configure(style="TEntry")
-        except:
+        except ValueError:
             entry.configure(style="Error.TEntry")
 
     def toggle_topmost(self):
@@ -146,10 +134,10 @@ class TicketCalculator:
 
     def calculate(self):
         try:
-            x1 = float(self.host_var.get())
-            x2 = float(self.guest_var.get())
-            ids = float(self.price_var.get())
-            kof = float(self.kof_var.get())
+            x1 = float(self.host_var.get() or 0)
+            x2 = float(self.guest_var.get() or 0)
+            ids = float(self.price_var.get() or 0)
+            kof = float(self.kof_var.get() or 0)
 
             if any(v <= 0 for v in (x1, x2, ids, kof)):
                 raise ValueError("Все значения должны быть больше 0")
@@ -192,27 +180,29 @@ class TicketCalculator:
             ("КД хозяев:", self.host_var),
             ("КД гостей:", self.guest_var),
             ("Рек. цена:", self.price_var),
-            ("КОФ:", self.kof_var)
+            ("КФ:", self.kof_var)
         ]
 
         for i, (text, var) in enumerate(fields):
             row = ttk.Frame(card)
             row.pack(fill="x", pady=8)
+
             ttk.Label(row, text=text, width=16).pack(side="left")
+
             entry = ttk.Entry(row, textvariable=var, width=25,
-                              validate="key",
+                              validate="all",
                               validatecommand=(self.root.register(self.validate_input), '%P'))
             entry.pack(side="left", padx=12, fill="x", expand=True)
+
+            # Настройка замены запятой и валидации при любом изменении
+            self._setup_comma_replacement(var, entry)
+            # Дополнительная подсветка при отпускании клавиши (KeyRelease)
             entry.bind("<KeyRelease>", lambda e, ent=entry: self.validate_field(ent))
 
-            if i == 0:
-                self.entry_host = entry
-            elif i == 1:
-                self.entry_guest = entry
-            elif i == 2:
-                self.entry_price = entry
-            elif i == 3:
-                self.entry_kof = entry
+            if i == 0: self.entry_host = entry
+            elif i == 1: self.entry_guest = entry
+            elif i == 2: self.entry_price = entry
+            elif i == 3: self.entry_kof = entry
 
         # Кнопки
         btn_frame = ttk.Frame(mainframe)
@@ -230,7 +220,7 @@ class TicketCalculator:
         # Подсказка
         tip_frame = ttk.Frame(mainframe)
         tip_frame.pack(fill="x", pady=(10, 0))
-        ttk.Label(tip_frame, text="*КОФ — коэффициент для вашей команды,\nподбирается индивидуально,\nот 2.1 до 4.9",
+        ttk.Label(tip_frame, text="*КФ — коэффициент для вашей команды,\nподбирается индивидуально,\nот 2.1 до 4.9\nСредний по проекту 3.0",
                   style="Tip.TLabel", justify="center").pack()
 
         self.entry_host.focus()
