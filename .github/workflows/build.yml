@@ -1,0 +1,70 @@
+name: Build Executables
+
+on:
+  push:
+    tags:
+      - 'v*'          # Сборка при создании тега v1.0, v1.2.3 и т.д.
+  workflow_dispatch:   # Можно запускать вручную
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            artifact: Windows
+            icon: icon.ico
+            onefile: true
+
+          - os: macos-latest
+            name: macOS
+            artifact: macOS
+            icon: icon.icns
+            onefile: false   # Лучше делать .app для macOS
+
+          - os: ubuntu-latest
+            name: Linux
+            artifact: Linux
+            icon: icon.png
+            onefile: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pillow pyperclip
+
+      - name: Build with PyInstaller
+        run: |
+          if [ "${{ matrix.name }}" = "macOS" ]; then
+            pyinstaller --windowed \
+                        --name "Калькулятор_билетов" \
+                        --icon "${{ matrix.icon }}" \
+                        --add-data "icon.png:." \
+                        main.py
+          else
+            pyinstaller --onefile \
+                        --windowed \
+                        --name "Калькулятор_билетов" \
+                        --icon "${{ matrix.icon }}" \
+                        main.py
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Калькулятор_билетов-${{ matrix.artifact }}
+          path: |
+            dist/Калькулятор_билетов*
+            dist/Калькулятор_билетов.app
+          retention-days: 30
