@@ -17,19 +17,16 @@ jobs:
             name: Windows
             artifact_name: Windows
             icon: icon.ico
-            onefile: true
 
           - os: macos-latest
             name: macOS
             artifact_name: macOS
             icon: icon.icns
-            onefile: false
 
           - os: ubuntu-latest
             name: Linux
             artifact_name: Linux
             icon: icon.png
-            onefile: true
 
     steps:
       - name: Checkout code
@@ -50,10 +47,19 @@ jobs:
         run: |
           echo "Building for ${{ matrix.name }}..."
 
+          ICON_FLAG=""
+          if [ -f "${{ matrix.icon }}" ]; then
+            ICON_FLAG="--icon ${{ matrix.icon }}"
+            echo "Using icon: ${{ matrix.icon }}"
+          else
+            echo "Icon ${{ matrix.icon }} not found, building without icon."
+          fi
+
           if [ "${{ matrix.name }}" = "macOS" ]; then
+            # Для macOS собираем как .app (лучше, чем onefile)
             pyinstaller --windowed \
                         --name "Калькулятор_билетов" \
-                        --icon "${{ matrix.icon }}" \
+                        $ICON_FLAG \
                         --add-data "icon.png:." \
                         --onedir \
                         main.py
@@ -61,7 +67,7 @@ jobs:
             pyinstaller --onefile \
                         --windowed \
                         --name "Калькулятор_билетов" \
-                        --icon "${{ matrix.icon }}" \
+                        $ICON_FLAG \
                         main.py
           fi
 
